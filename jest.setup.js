@@ -1,6 +1,15 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Polyfill for Node.js APIs needed by postgres library
+if (typeof global.setImmediate === 'undefined') {
+  global.setImmediate = (callback, ...args) => setTimeout(callback, 0, ...args);
+}
+
+if (typeof global.clearImmediate === 'undefined') {
+  global.clearImmediate = (id) => clearTimeout(id);
+}
+
 // Polyfill for Response object (needed for API route testing)
 if (!global.Response) {
   global.Response = class Response {

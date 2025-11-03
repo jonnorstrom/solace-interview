@@ -30,14 +30,13 @@ describe("Home Page - Search Functionality", () => {
       lastName: "Johnson",
       city: "Chicago",
       degree: "LCSW",
-      specialties: ["Family Therapy", "Depression"],
+      specialties: ["Family Therapy", "Depression", "Anxiety", "Trauma"],
       yearsOfExperience: "7",
       phoneNumber: 5554567890,
     },
   ];
 
   beforeEach(() => {
-    // Reset the mock before each test
     (global.fetch as jest.Mock).mockResolvedValue({
       json: async () => ({ data: mockAdvocates }),
     });
@@ -149,8 +148,9 @@ describe("Home Page - Search Functionality", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Jane")).toBeInTheDocument();
+      expect(screen.getByText("Bob")).toBeInTheDocument();
       expect(screen.queryByText("John")).not.toBeInTheDocument();
-      expect(screen.queryByText("Bob")).not.toBeInTheDocument();
+      expect(screen.queryByText(".. and 2 more")).toBeInTheDocument();
     });
   });
 
@@ -186,27 +186,12 @@ describe("Home Page - Search Functionality", () => {
     await user.type(searchInput, "New York");
 
     // Check that the search term is displayed
-    const searchTermElement = document.getElementById("search-term");
-    expect(searchTermElement).toHaveTextContent("New York");
-  });
-
-  it("should show no results when search doesn't match any advocate", async () => {
-    const user = userEvent.setup();
-    render(<Home />);
-
     await waitFor(() => {
-      expect(screen.getByText("John")).toBeInTheDocument();
+      expect(screen.getByText(/Searching for:/)).toBeInTheDocument();
     });
-
-    const searchInput = screen.getByTestId("search-input");
-
-    await user.type(searchInput, "NonExistentName");
-
-    await waitFor(() => {
-      expect(screen.queryByText("John")).not.toBeInTheDocument();
-      expect(screen.queryByText("Jane")).not.toBeInTheDocument();
-      expect(screen.queryByText("Bob")).not.toBeInTheDocument();
-    });
+    
+    // Verify the input value reflects the search term
+    expect(searchInput).toHaveValue("New York");
   });
 
   it("should reset search and show all advocates when Reset button is clicked", async () => {
@@ -291,6 +276,77 @@ describe("Home Page - Search Functionality", () => {
       expect(screen.getByText("Smith")).toBeInTheDocument();
       expect(screen.queryByText("Doe")).not.toBeInTheDocument();
       expect(screen.queryByText("Johnson")).not.toBeInTheDocument();
+    });
+  });
+
+  it("should display loading state while fetching advocates", async () => {
+    (global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              json: async () => ({ data: mockAdvocates }),
+            });
+          }, 100);
+        })
+    );
+
+    render(<Home />);
+
+    expect(screen.getByText("Loading advocates...")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("John")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Loading advocates...")).not.toBeInTheDocument();
+  });
+
+  it("should display 'No results found' message when search returns no matches", async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("John")).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByTestId("search-input");
+
+    await user.type(searchInput, "NonExistentName");
+
+    await waitFor(() => {
+      expect(screen.getByText("No results found")).toBeInTheDocument();
+      expect(screen.getByText("Try adjusting your search terms to find what you're looking for.")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("John")).not.toBeInTheDocument();
+    expect(screen.queryByText("Jane")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bob")).not.toBeInTheDocument();
+  });
+
+  it("should hide no results message when advocates are found again", async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("John")).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByTestId("search-input");
+
+    await user.type(searchInput, "NonExistentName");
+
+    await waitFor(() => {
+      expect(screen.getByText("No results found")).toBeInTheDocument();
+    });
+
+    await user.clear(searchInput);
+
+    await waitFor(() => {
+      expect(screen.queryByText("No results found")).not.toBeInTheDocument();
+      expect(screen.getByText("John")).toBeInTheDocument();
+      expect(screen.getByText("Jane")).toBeInTheDocument();
+      expect(screen.getByText("Bob")).toBeInTheDocument();
     });
   });
 });
