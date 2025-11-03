@@ -30,14 +30,13 @@ describe("Home Page - Search Functionality", () => {
       lastName: "Johnson",
       city: "Chicago",
       degree: "LCSW",
-      specialties: ["Family Therapy", "Depression"],
+      specialties: ["Family Therapy", "Depression", "Anxiety", "Trauma"],
       yearsOfExperience: "7",
       phoneNumber: 5554567890,
     },
   ];
 
   beforeEach(() => {
-    // Reset the mock before each test
     (global.fetch as jest.Mock).mockResolvedValue({
       json: async () => ({ data: mockAdvocates }),
     });
@@ -149,8 +148,9 @@ describe("Home Page - Search Functionality", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Jane")).toBeInTheDocument();
+      expect(screen.getByText("Bob")).toBeInTheDocument();
       expect(screen.queryByText("John")).not.toBeInTheDocument();
-      expect(screen.queryByText("Bob")).not.toBeInTheDocument();
+      expect(screen.queryByText(".. and 2 more")).toBeInTheDocument();
     });
   });
 
